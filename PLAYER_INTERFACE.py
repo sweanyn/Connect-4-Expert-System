@@ -9,7 +9,7 @@ def display_options(valid_moves):
 def get_player_move(valid_moves):
     while True:
         # Run input_script.py in a new terminal
-        subprocess.Popen(['cmd.exe', '/c', 'start', 'cmd', '/k', 'python user_input_script.py & exit'])
+        subprocess.Popen(['cmd.exe', '/c', 'start', 'cmd', '/k', 'python USER_INPUT_SCRIPT.py & exit'])
         
         # Wait for a few seconds to make sure the input has been captured
         time.sleep(10)
