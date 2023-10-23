@@ -132,7 +132,7 @@ def score_window(window, player):
         if np.array_equal(window, [EMPTY, opp_player, opp_player, opp_player]) or np.array_equal(window, [opp_player, opp_player, opp_player, EMPTY]):
             score -= 80  # Giving it a high negative score
     elif np.count_nonzero(window == opp_player) == 2 and np.count_nonzero(window == EMPTY) == 2:
-        score -= 25 
+        score -= 8 
 
     return score
 
