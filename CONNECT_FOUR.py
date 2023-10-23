@@ -10,11 +10,10 @@ OFFSET = WINDOW_SIZE - 1
 EMPTY = 0
 SWAP_PLAYER = 3
 CENTER_COLUMN = COLUMN_COUNT // 2
-CENTER_COLUMN_MULTIPLIER = 50
-CENTER_COLUMN_NEGATIVE_MULTIPLIER = 40
+CENTER_COLUMN_MULTIPLIER = 3
 
 # SET THIS FOR ALPHA-BETA SEARCH DEPTH
-ALPHA_BETA_DEPTH_LIMIT = 5
+ALPHA_BETA_DEPTH_LIMIT = 4
 
 
 
@@ -39,7 +38,7 @@ def make_move(grid, col, player):
 
 def is_end_of_game(grid, player): # Winning move / game end.
     # Checking horizontal locations for win
-    for col in range(COLUMN_COUNT-3):
+    for col in range(COLUMN_COUNT-OFFSET):
         for row in range (ROW_COUNT):
             if (grid[row, col]   == player and 
                 grid[row, col+1] == player and 
@@ -49,7 +48,7 @@ def is_end_of_game(grid, player): # Winning move / game end.
     
     # Checking vertical locations for win
     for col in range(COLUMN_COUNT):
-        for row in range(ROW_COUNT-3):
+        for row in range(ROW_COUNT-OFFSET):
             if (grid[row, col]   == player and 
                 grid[row+1, col] == player and 
                 grid[row+2, col] == player and 
@@ -57,8 +56,8 @@ def is_end_of_game(grid, player): # Winning move / game end.
                 return True
             
     # Checking positive sloped diaganols for win
-    for col in range(COLUMN_COUNT-3):
-        for row in range(ROW_COUNT-3):
+    for col in range(COLUMN_COUNT-OFFSET):
+        for row in range(ROW_COUNT-OFFSET):
             if (grid[row, col]     == player and 
                 grid[row+1, col+1] == player and 
                 grid[row+2, col+2] == player and 
@@ -66,8 +65,8 @@ def is_end_of_game(grid, player): # Winning move / game end.
                 return True
             
     # Checking negatively sloped diaganols for win
-    for col in range(COLUMN_COUNT-3):
-        for row in range(3, ROW_COUNT):
+    for col in range(COLUMN_COUNT-OFFSET):
+        for row in range(OFFSET, ROW_COUNT):
             if (grid[row, col]     == player and 
                 grid[row-1, col+1] == player and 
                 grid[row-2, col+2] == player and 
@@ -77,66 +76,70 @@ def is_end_of_game(grid, player): # Winning move / game end.
     # Checking for a draw here
     return 0 not in grid[0, :]
 
+
+def score_window(window, player):
+    score = 0
+    opp_player = SWAP_PLAYER - player
+
+    # (Scoring self-moves)
+    if list(window).count(player) == 4:
+        score += 100
+    elif list(window).count(player) == 3 and list(window).count(EMPTY) == 1:
+        score += 5
+    elif list(window).count(player) == 2 and list(window).count(EMPTY) == 2:
+        score += 2
+        
+    # Blocking (Scoring opp-moves)
+    if list(window).count(opp_player) == 3 and list(window).count(EMPTY) == 1:
+        score -= 4
+
+
+    return score
+
+
 def score_heuristic(grid, player):
     score = 0
     # Evaluate the board for the given player
 
     # Score Center column
-    center_column_count = np.count_nonzero(grid[:, CENTER_COLUMN] == player)
-    score += center_column_count  * CENTER_COLUMN_MULTIPLIER
+    center_array = [int(i) for i in list(grid[:, CENTER_COLUMN])]
+    center_column_count = center_array.count(player)
+    score += center_column_count * CENTER_COLUMN_MULTIPLIER
 
-    # Score Opp Center column
-    opp_center_column_count = np.count_nonzero(grid[:, CENTER_COLUMN] == SWAP_PLAYER-player)
-    score -= opp_center_column_count  * CENTER_COLUMN_NEGATIVE_MULTIPLIER
 
     # Score Vertical
     for col in range(COLUMN_COUNT):  
         for row in range(ROW_COUNT - OFFSET):
             window = grid[row:row+WINDOW_SIZE, col]
-            score += score_window(window, player, score)
+            score += score_window(window, player)
 
     # Score Horizontal
     for row in range(ROW_COUNT):
         for col in range(COLUMN_COUNT - OFFSET):  
             window = grid[row, col:col+WINDOW_SIZE]
-            score += score_window(window, player, score)
+            score += score_window(window, player)
 
     # Score Positive Slope Diagonal
     for row in range(ROW_COUNT - OFFSET):
         for col in range(COLUMN_COUNT - OFFSET):
             window = [grid[row+i, col+i] for i in range(WINDOW_SIZE)]
-            score += score_window(window, player, score)
+            score += score_window(window, player)
 
     # Score Negative Slope Diagonal
     for row in range(ROW_COUNT - OFFSET):
         for col in range(OFFSET, COLUMN_COUNT):
             window = [grid[row+i, col-i] for i in range(WINDOW_SIZE)]
-            score += score_window(window, player, score)
+            score += score_window(window, player)
             
     return score
 
 
-def score_window(window, player, score):
-    opp_player = SWAP_PLAYER - player
 
-    # (Scoring self-moves)
-    if list(window).count(player) == 4:
-        score += 2000
-    elif list(window).count(player) == 3 and list(window).count(EMPTY) == 1:
-        score += 500
-    elif list(window).count(player) == 2 and list(window).count(EMPTY) == 2:
-        score += 10
 
-    # Blocking (Scoring opp-moves)
-    if list(window).count(opp_player) == 3 and list(window).count(EMPTY) == 1:
-        score -= 1000
-    elif list(window).count(opp_player) == 2 and list(window).count(EMPTY) == 2:
-        score -= 8
-    return score
 
 
 def alphabeta(grid, depth, alpha, beta, maximizing_player, player):
-    if depth == 0 or is_end_of_game(grid, player) or is_end_of_game(grid, SWAP_PLAYER-player):
+    if depth == 0 or is_end_of_game(grid, player) or is_end_of_game(grid, SWAP_PLAYER-player) or len(get_valid_moves(grid)) == 0:
         return score_heuristic(grid, player)
 
     if maximizing_player:
@@ -150,7 +153,7 @@ def alphabeta(grid, depth, alpha, beta, maximizing_player, player):
                 if beta <= alpha:
                     break
         return max_score
-    else:
+    else: #Minimizing player
         min_score = float('inf')
         for col in range(COLUMN_COUNT):
             if is_valid_move(grid, col):
@@ -163,7 +166,7 @@ def alphabeta(grid, depth, alpha, beta, maximizing_player, player):
         return min_score
 
 def find_best_move(grid, player):
-    best_score = float('-inf')
+    best_score = -10000
     best_col = -1
     valid_moves = get_valid_moves(grid) # A list of all the possible moves we can make.
     for col in valid_moves:
