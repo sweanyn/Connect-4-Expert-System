@@ -9,6 +9,8 @@ WINDOW_SIZE = 4
 OFFSET = WINDOW_SIZE - 1
 EMPTY = 0
 SWAP_PLAYER = 3
+CENTER_COLUMN = COLUMN_COUNT // 2
+CENTER_COLUMN_MULTIPLIER = 3
 
 # SET THIS FOR ALPHA-BETA SEARCH DEPTH
 ALPHA_BETA_DEPTH_LIMIT = 4
@@ -77,30 +79,63 @@ def is_end_of_game(grid, player): # Winning move / game end.
 def score_heuristic(grid, player):
     score = 0
     # Evaluate the board for the given player
-    # Placeholder that just returns 0
-    # Scoring Vertical Columns (Checking Window Sizes for how many pieces are 'player')
+
+    # Score Center column
+    score += (np.count_nonzero(grid[:, CENTER_COLUMN] == player) * CENTER_COLUMN_MULTIPLIER)
+
     # Score Vertical
     for col in range(COLUMN_COUNT):  
         for row in range(ROW_COUNT - OFFSET):
             window = grid[row:row+WINDOW_SIZE, col]
-            if np.count_nonzero(window == player) == 4:
-                score += 100
-            elif np.count_nonzero(window == player) == 3 and np.count_nonzero(window == EMPTY) == 1:
-                score += 10
+            score += score_window(window, player)
 
     # Score Horizontal
     for row in range(ROW_COUNT):
         for col in range(COLUMN_COUNT - OFFSET):  
             window = grid[row, col:col+WINDOW_SIZE]
-            if np.count_nonzero(window == player) == 4:
-                score += 100
-            elif np.count_nonzero(window == player) == 3 and np.count_nonzero(window == EMPTY) == 1:
-                score += 10
+            score += score_window(window, player)
+
+    # Score Positive Slope Diagonal
+    for row in range(ROW_COUNT - OFFSET):
+        for col in range(COLUMN_COUNT - OFFSET):
+            window = [grid[row+i, col+i] for i in range(WINDOW_SIZE)]
+            score += score_window(window, player)
+
+    # Score Negative Slope Diagonal
+    for row in range(ROW_COUNT - OFFSET):
+        for col in range(OFFSET, COLUMN_COUNT):
+            window = [grid[row+i, col-i] for i in range(WINDOW_SIZE)]
+            score += score_window(window, player)
+            
+    return score
 
 
+def score_window(window, player):
+    opp_player = SWAP_PLAYER - player
+    score = 0
 
+    # (Scoring self-moves)
+    if np.count_nonzero(window == player) == 4:
+        score += 100
+    elif np.count_nonzero(window == player) == 3 and np.count_nonzero(window == EMPTY) == 1:
+        score += 10
+        # Scoring the "7" arrangement
+        if np.array_equal(window, [EMPTY, player, player, player]) or np.array_equal(window, [player, player, player, EMPTY]):
+            score += 40  # Giving it a higher score, but not as high as a guaranteed win
+    elif np.count_nonzero(window == player) == 2 and np.count_nonzero(window == EMPTY) == 2:
+        score += 5
+
+    # Blocking (Scoring opp-moves)
+    if np.count_nonzero(window == opp_player) == 3 and np.count_nonzero(window == EMPTY) == 1:
+        score -= 50
+        # Penalizing for allowing opponent's "7" arrangement
+        if np.array_equal(window, [EMPTY, opp_player, opp_player, opp_player]) or np.array_equal(window, [opp_player, opp_player, opp_player, EMPTY]):
+            score -= 80  # Giving it a high negative score
+    elif np.count_nonzero(window == opp_player) == 2 and np.count_nonzero(window == EMPTY) == 2:
+        score -= 25 
 
     return score
+
 
 def alphabeta(grid, depth, alpha, beta, maximizing_player, player):
     if depth == 0 or is_end_of_game(grid, player) or is_end_of_game(grid, SWAP_PLAYER-player):
