@@ -10,16 +10,17 @@ OFFSET = WINDOW_SIZE - 1
 EMPTY = 0
 SWAP_PLAYER = 3
 CENTER_COLUMN = COLUMN_COUNT // 2
-CENTER_COLUMN_MULTIPLIER = 3
+CENTER_COLUMN_MULTIPLIER = 50
+CENTER_COLUMN_NEGATIVE_MULTIPLIER = 40
 
 # SET THIS FOR ALPHA-BETA SEARCH DEPTH
-ALPHA_BETA_DEPTH_LIMIT = 4
+ALPHA_BETA_DEPTH_LIMIT = 5
 
 
 
 
 def is_valid_move(grid, col):
-    return grid[0, col] == 0
+    return grid[0, col] == EMPTY
 
 def get_valid_moves(grid):
     valid_moves = []
@@ -81,59 +82,56 @@ def score_heuristic(grid, player):
     # Evaluate the board for the given player
 
     # Score Center column
-    score += (np.count_nonzero(grid[:, CENTER_COLUMN] == player) * CENTER_COLUMN_MULTIPLIER)
+    center_column_count = np.count_nonzero(grid[:, CENTER_COLUMN] == player)
+    score += center_column_count  * CENTER_COLUMN_MULTIPLIER
+
+    # Score Opp Center column
+    opp_center_column_count = np.count_nonzero(grid[:, CENTER_COLUMN] == SWAP_PLAYER-player)
+    score -= opp_center_column_count  * CENTER_COLUMN_NEGATIVE_MULTIPLIER
 
     # Score Vertical
     for col in range(COLUMN_COUNT):  
         for row in range(ROW_COUNT - OFFSET):
             window = grid[row:row+WINDOW_SIZE, col]
-            score += score_window(window, player)
+            score += score_window(window, player, score)
 
     # Score Horizontal
     for row in range(ROW_COUNT):
         for col in range(COLUMN_COUNT - OFFSET):  
             window = grid[row, col:col+WINDOW_SIZE]
-            score += score_window(window, player)
+            score += score_window(window, player, score)
 
     # Score Positive Slope Diagonal
     for row in range(ROW_COUNT - OFFSET):
         for col in range(COLUMN_COUNT - OFFSET):
             window = [grid[row+i, col+i] for i in range(WINDOW_SIZE)]
-            score += score_window(window, player)
+            score += score_window(window, player, score)
 
     # Score Negative Slope Diagonal
     for row in range(ROW_COUNT - OFFSET):
         for col in range(OFFSET, COLUMN_COUNT):
             window = [grid[row+i, col-i] for i in range(WINDOW_SIZE)]
-            score += score_window(window, player)
+            score += score_window(window, player, score)
             
     return score
 
 
-def score_window(window, player):
+def score_window(window, player, score):
     opp_player = SWAP_PLAYER - player
-    score = 0
 
     # (Scoring self-moves)
-    if np.count_nonzero(window == player) == 4:
-        score += 100
-    elif np.count_nonzero(window == player) == 3 and np.count_nonzero(window == EMPTY) == 1:
+    if list(window).count(player) == 4:
+        score += 2000
+    elif list(window).count(player) == 3 and list(window).count(EMPTY) == 1:
+        score += 500
+    elif list(window).count(player) == 2 and list(window).count(EMPTY) == 2:
         score += 10
-        # Scoring the "7" arrangement
-        if np.array_equal(window, [EMPTY, player, player, player]) or np.array_equal(window, [player, player, player, EMPTY]):
-            score += 40  # Giving it a higher score, but not as high as a guaranteed win
-    elif np.count_nonzero(window == player) == 2 and np.count_nonzero(window == EMPTY) == 2:
-        score += 5
 
     # Blocking (Scoring opp-moves)
-    if np.count_nonzero(window == opp_player) == 3 and np.count_nonzero(window == EMPTY) == 1:
-        score -= 50
-        # Penalizing for allowing opponent's "7" arrangement
-        if np.array_equal(window, [EMPTY, opp_player, opp_player, opp_player]) or np.array_equal(window, [opp_player, opp_player, opp_player, EMPTY]):
-            score -= 80  # Giving it a high negative score
-    elif np.count_nonzero(window == opp_player) == 2 and np.count_nonzero(window == EMPTY) == 2:
-        score -= 8 
-
+    if list(window).count(opp_player) == 3 and list(window).count(EMPTY) == 1:
+        score -= 1000
+    elif list(window).count(opp_player) == 2 and list(window).count(EMPTY) == 2:
+        score -= 8
     return score
 
 
@@ -146,7 +144,7 @@ def alphabeta(grid, depth, alpha, beta, maximizing_player, player):
         for col in range(COLUMN_COUNT):
             if is_valid_move(grid, col):
                 new_grid = make_move(grid.copy(), col, player) # Ensuring to make a deep copy of the grid.
-                score = alphabeta(new_grid, depth-1, alpha, beta, False, SWAP_PLAYER-player)
+                score = alphabeta(new_grid, depth-1, alpha, beta, False, SWAP_PLAYER-player)              
                 max_score = max(max_score, score)
                 alpha = max(alpha, score)
                 if beta <= alpha:
@@ -170,7 +168,7 @@ def find_best_move(grid, player):
     valid_moves = get_valid_moves(grid) # A list of all the possible moves we can make.
     for col in valid_moves:
         new_grid = make_move(grid.copy(), col, player) # Deep copy the grid.
-        move_score = alphabeta(new_grid, ALPHA_BETA_DEPTH_LIMIT, float('-inf'), float('inf'), False, SWAP_PLAYER-player)
+        move_score = alphabeta(new_grid, ALPHA_BETA_DEPTH_LIMIT, float('-inf'), float('inf'), True, player)
         if move_score > best_score:
             best_score = move_score
             best_col = col
@@ -183,8 +181,8 @@ def main():
         
         json_data = json.loads(line)
         
-        grid = np.array(json_data["grid"], dtype=int)
-
+        grid = np.array(json_data["grid"], dtype=int).T #Transpose to get out of column-major format.
+        print(grid, file=sys.stderr)
         move = find_best_move(grid, json_data["player"])
         
         action = {"move": move}
