@@ -7,6 +7,7 @@ WINDOW_SIZE = 4
 OFFSET = WINDOW_SIZE - 1
 EMPTY = 0
 SWAP_PLAYER = 3
+CENTER_COLUMN = COLUMN_COUNT // 2
 CENTER_COLUMN_MULTIPLIER = 100
 
 # SET THIS FOR ALPHA-BETA SEARCH DEPTH
@@ -193,6 +194,7 @@ def main():
         COLUMN_COUNT = int(json_data["width"])
         global CENTER_COLUMN
         CENTER_COLUMN = COLUMN_COUNT // 2
+        print(f"Row Count is: {ROW_COUNT}, Column Count is: {COLUMN_COUNT}, Center Column is: {CENTER_COLUMN}", file=sys.stderr)
         grid = np.array(json_data["grid"], dtype=int).T #Transpose to get out of column-major format.
         print(grid, file=sys.stderr)
         move = find_best_move(grid, json_data["player"])
