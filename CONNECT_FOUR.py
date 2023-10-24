@@ -10,10 +10,10 @@ OFFSET = WINDOW_SIZE - 1
 EMPTY = 0
 SWAP_PLAYER = 3
 CENTER_COLUMN = COLUMN_COUNT // 2
-CENTER_COLUMN_MULTIPLIER = 10
+CENTER_COLUMN_MULTIPLIER = 100
 
 # SET THIS FOR ALPHA-BETA SEARCH DEPTH
-ALPHA_BETA_DEPTH_LIMIT = 5
+ALPHA_BETA_DEPTH_LIMIT = 4
 
 
 
@@ -86,13 +86,13 @@ def score_window(window, player):
     # (Scoring self-moves)
     if list(window).count(player) == 4:
         score += 10
-    if list(window).count(player) == 3 and list(window).count(EMPTY) == 1:
+    elif list(window).count(player) == 3 and list(window).count(EMPTY) == 1:
         score += 5
-    if list(window).count(player) == 2 and list(window).count(EMPTY) == 2:
+    elif list(window).count(player) == 2 and list(window).count(EMPTY) == 2:
         score += 2
     # Blocking (Scoring opp-moves)
     if list(window).count(opp_player) == 3 and list(window).count(EMPTY) == 1:
-        score -= 4
+        score -= 40
 
     return score
 
@@ -142,7 +142,7 @@ def alphabeta(grid, depth, alpha, beta, maximizing_player, player):
     if depth == 0 or is_end_of_game(grid, player) or is_end_of_game(grid, SWAP_PLAYER-player) or is_draw(grid) or len(get_valid_moves(grid)) == 0:
         if is_end_of_game(grid, player):
             return 100000
-        elif is_end_of_game(grid, SWAP_PLAYER-player):
+        if is_end_of_game(grid, SWAP_PLAYER-player):
             return -100000
         else:
             return score_heuristic(grid, player)
