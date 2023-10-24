@@ -3,13 +3,10 @@ import sys
 import numpy as np
 
 # CONSTANTS
-ROW_COUNT = 6
-COLUMN_COUNT = 7
 WINDOW_SIZE = 4
 OFFSET = WINDOW_SIZE - 1
 EMPTY = 0
 SWAP_PLAYER = 3
-CENTER_COLUMN = COLUMN_COUNT // 2
 CENTER_COLUMN_MULTIPLIER = 100
 
 # SET THIS FOR ALPHA-BETA SEARCH DEPTH
@@ -188,7 +185,14 @@ def main():
         print(line, file=sys.stderr)
         
         json_data = json.loads(line)
-        
+
+        # SETTING COLUMN AND ROWS BASED ON READ DATA.
+        global ROW_COUNT 
+        ROW_COUNT = int(json_data["height"])
+        global COLUMN_COUNT
+        COLUMN_COUNT = int(json_data["width"])
+        global CENTER_COLUMN
+        CENTER_COLUMN = COLUMN_COUNT // 2
         grid = np.array(json_data["grid"], dtype=int).T #Transpose to get out of column-major format.
         print(grid, file=sys.stderr)
         move = find_best_move(grid, json_data["player"])
