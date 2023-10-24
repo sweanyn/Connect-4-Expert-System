@@ -30,7 +30,7 @@ def get_valid_moves(grid):
 
 def make_move(grid, col, player):
     # IMPORTANT: Make sure to always .copy() the 'grid' when calling 'make_move()'
-    for row in range(ROW_COUNT-1, -1, -1):
+    for row in reversed(range(ROW_COUNT)):
         if grid[row, col] == 0:
             grid[row, col] = player
             break
@@ -72,9 +72,11 @@ def is_end_of_game(grid, player): # Winning move / game end.
                 grid[row-2, col+2] == player and 
                 grid[row-3, col+3] == player):
                 return True
+    return False # If the function hasn't returned by now, the game hasn't ended due to a win.
 
-    # Checking for a draw here
+def is_draw(grid):
     return 0 not in grid[0, :]
+
 
 
 def score_window(window, player):
@@ -83,16 +85,16 @@ def score_window(window, player):
 
     # (Scoring self-moves)
     if list(window).count(player) == 4:
-        score += 100
-    elif list(window).count(player) == 3 and list(window).count(EMPTY) == 1:
+        score += 10
+    if list(window).count(player) == 3 and list(window).count(EMPTY) == 1:
         score += 5
-    elif list(window).count(player) == 2 and list(window).count(EMPTY) == 2:
+    if list(window).count(player) == 2 and list(window).count(EMPTY) == 2:
         score += 2
-        
     # Blocking (Scoring opp-moves)
-    if list(window).count(opp_player) == 3 and list(window).count(EMPTY) == 1:
-        score -= 4
-
+    #if list(window).count(opp_player) == 3 and list(window).count(EMPTY) == 1:
+        #score -= 800
+    #elif list(window).count(opp_player) == 2 and list(window).count(EMPTY) == 2:
+        #score -= 20
 
     return score
 
@@ -139,8 +141,13 @@ def score_heuristic(grid, player):
 
 
 def alphabeta(grid, depth, alpha, beta, maximizing_player, player):
-    if depth == 0 or is_end_of_game(grid, player) or is_end_of_game(grid, SWAP_PLAYER-player) or len(get_valid_moves(grid)) == 0:
-        return score_heuristic(grid, player)
+    if depth == 0 or is_end_of_game(grid, player) or is_end_of_game(grid, SWAP_PLAYER-player) or is_draw(grid) or len(get_valid_moves(grid)) == 0:
+        if is_end_of_game(grid, player):
+            return 100000000
+        elif is_end_of_game(grid, SWAP_PLAYER-player):
+            return -100000000
+        else:
+            return score_heuristic(grid, player)
 
     if maximizing_player:
         max_score = float('-inf')
@@ -166,7 +173,7 @@ def alphabeta(grid, depth, alpha, beta, maximizing_player, player):
         return min_score
 
 def find_best_move(grid, player):
-    best_score = -10000
+    best_score = float('-inf')
     best_col = -1
     valid_moves = get_valid_moves(grid) # A list of all the possible moves we can make.
     for col in valid_moves:
