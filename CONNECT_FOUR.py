@@ -10,7 +10,7 @@ SWAP_PLAYER = 3
 CENTER_COLUMN_MULTIPLIER = 3
 
 # SET THIS FOR ALPHA-BETA SEARCH DEPTH
-ALPHA_BETA_DEPTH_LIMIT = 5
+ALPHA_BETA_DEPTH_LIMIT = 6
 
 
 
@@ -85,7 +85,7 @@ def score_window(window, player):
 
     # (Scoring self-moves)
     if list(window).count(player) == 4:
-        score += 100
+        score += 10
     if list(window).count(player) == 3 and list(window).count(EMPTY) == 1:
         score += 5
     if list(window).count(player) == 2 and list(window).count(EMPTY) == 2:
@@ -204,9 +204,9 @@ def main():
 
         grid = np.array(json_data["grid"], dtype=int).T #Transpose to get out of column-major format.
         print(grid, file=sys.stderr)
-        col, _ = alphabeta(grid, ALPHA_BETA_DEPTH_LIMIT, float('-inf'), float('inf'), True)
+        move, _ = alphabeta(grid, ALPHA_BETA_DEPTH_LIMIT, float('-inf'), float('inf'), True)
         
-        action = {"move": col}
+        action = {"move": move}
         
         action_json = json.dumps(action)
 
