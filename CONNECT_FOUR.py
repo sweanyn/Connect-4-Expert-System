@@ -1,3 +1,9 @@
+'''
+BY: Nathan Sweany
+CU Denver
+Heavily Adapted from: https://github.com/KeithGalli/Connect4-Python
+'''
+
 import json
 import sys
 import numpy as np
@@ -109,9 +115,8 @@ def score_heuristic(grid, player):
 
     # Score Horizontal
     for row in range(ROW_COUNT):
-        row_arr = [int(i) for i in list(grid[row,:])]
         for col in range(COLUMN_COUNT - OFFSET):  
-            window = row_arr[col:col+WINDOW_SIZE]
+            window = grid[row, col:col+WINDOW_SIZE]
             score += score_window(window, player)
 
     # Score Vertical
@@ -119,8 +124,6 @@ def score_heuristic(grid, player):
         for row in range(ROW_COUNT - OFFSET):
             window = grid[row:row+WINDOW_SIZE, col]
             score += score_window(window, player)
-
-
 
     # Score Positive Slope Diagonal
     for row in range(ROW_COUNT - OFFSET):
