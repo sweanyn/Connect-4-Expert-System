@@ -1,6 +1,7 @@
 '''
 BY: Nathan Sweany
-CU Denver
+University of Colorado Denver, Fall 2023 - Introduction to AI (CSCI 4202)
+Professor Doug Williams
 Heavily Adapted from: https://github.com/KeithGalli/Connect4-Python
 '''
 
@@ -14,17 +15,15 @@ OFFSET = WINDOW_SIZE - 1
 EMPTY = 0
 SWAP_PLAYER = 3
 CENTER_COLUMN_MULTIPLIER = 3
-
 # SET THIS FOR ALPHA-BETA SEARCH DEPTH
 ALPHA_BETA_DEPTH_LIMIT = 6
 
-
-
-
-def is_valid_move(grid, col):
+def is_valid_move(grid, col): 
+    # Returns whether or not there is space in the given column (T/F).
     return grid[0, col] == EMPTY
 
-def get_valid_moves(grid):
+def get_valid_moves(grid): 
+    # Returns a list of the current available moves for the player to choose.
     valid_moves = []
     for col in range(COLUMN_COUNT):
         if is_valid_move(grid, col):
@@ -78,9 +77,8 @@ def is_end_of_game(grid, player): # Winning move / game end.
     return False # If the function hasn't returned by now, the game hasn't ended due to a win.
 
 def is_draw(grid):
+    # Returns whether or not there are spaces left to play in the board (T/F).
     return 0 not in grid[0, :]
-
-
 
 def score_window(window, player):
     score = 0
@@ -88,8 +86,7 @@ def score_window(window, player):
     if player == PLAYER:
         opp_player = OPP_PLAYER
     
-
-    # (Scoring self-moves)
+    # Scoring self-moves
     if list(window).count(player) == 4:
         score += 10
     if list(window).count(player) == 3 and list(window).count(EMPTY) == 1:
@@ -99,10 +96,7 @@ def score_window(window, player):
     # Blocking (Scoring opp-moves)
     if list(window).count(opp_player) == 3 and list(window).count(EMPTY) == 1:
         score -= 4
-
-
     return score
-
 
 def score_heuristic(grid, player):
     score = 0
@@ -135,34 +129,27 @@ def score_heuristic(grid, player):
     for row in range(ROW_COUNT - OFFSET):
         for col in range(OFFSET, COLUMN_COUNT):
             window = [grid[row+i, col-i] for i in range(WINDOW_SIZE)]
-            score += score_window(window, player)
-    
+            score += score_window(window, player)   
     return score
-
-
-
-
-
 
 def alphabeta(grid, depth, alpha, beta, maximizing_player):
     if depth == 0:
         return(None, score_heuristic(grid, PLAYER))
     if is_end_of_game(grid, PLAYER):
-        return(None, 1000000)
+        return(None, 1000000) # Player Win
     if is_end_of_game(grid, OPP_PLAYER):
-        return(None, -1000000)
+        return(None, -1000000) # Opponent Win
     if is_draw(grid):
-        return (None, 0)
+        return (None, 0) # Draw
     if len(get_valid_moves(grid)) == 0:
-        return(None, 0)
-
+        return(None, 0) # Board is full == Draw
 
     if maximizing_player:
         max_score = float('-inf')
         for col in range(COLUMN_COUNT):
             if is_valid_move(grid, col):
                 new_grid = make_move(grid.copy(), col, PLAYER) # Ensuring to make a deep copy of the grid.
-                new_score = alphabeta(new_grid, depth-1, alpha, beta, False)[1]             
+                _, new_score = alphabeta(new_grid, depth-1, alpha, beta, False)         
                 if new_score > max_score:
                     max_score = new_score
                     column = col
@@ -170,12 +157,12 @@ def alphabeta(grid, depth, alpha, beta, maximizing_player):
                 if alpha >= beta:
                     break
         return column, max_score
-    else: #Minimizing player
+    else: # Minimizing player
         min_score = float('inf')
         for col in range(COLUMN_COUNT):
             if is_valid_move(grid, col):
                 new_grid = make_move(grid.copy(), col, OPP_PLAYER) # Ensuring to make a deep copy of the grid.
-                new_score = alphabeta(new_grid, depth-1, alpha, beta, True)[1]
+                _, new_score = alphabeta(new_grid, depth-1, alpha, beta, True)
                 if new_score < min_score:
                     min_score = new_score
                     column = col
@@ -184,16 +171,12 @@ def alphabeta(grid, depth, alpha, beta, maximizing_player):
                     break
         return column, min_score
 
-
-
 def main():
     print('Connect Four with Alpha-Beta Pruning in Python', file=sys.stderr)
     for line in sys.stdin:
         print(line, file=sys.stderr)
-        
         json_data = json.loads(line)
-
-        # SETTING COLUMN AND ROWS BASED ON READ DATA.
+        # Setting global variables based on read data (to allow for multiple grid-sizes)
         global ROW_COUNT 
         ROW_COUNT = int(json_data["height"])
         global COLUMN_COUNT
@@ -204,15 +187,10 @@ def main():
         PLAYER = int(json_data["player"])
         global OPP_PLAYER
         OPP_PLAYER = SWAP_PLAYER - PLAYER
-
-        grid = np.array(json_data["grid"], dtype=int).T #Transpose to get out of column-major format.
-        print(grid, file=sys.stderr)
+        grid = np.array(json_data["grid"], dtype=int).T # Transpose to get out of column-major format.
         move, _ = alphabeta(grid, ALPHA_BETA_DEPTH_LIMIT, float('-inf'), float('inf'), True)
-        
         action = {"move": move}
-        
         action_json = json.dumps(action)
-
         print(action_json, file=sys.stderr)
         print(action_json, flush=True)
 
